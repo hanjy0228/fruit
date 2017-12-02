@@ -1,0 +1,114 @@
+Data=zeros(100,10)
+for q=1:15
+f=strcat('C:\Users\HanJingYi\Desktop\水果识别',num2str(q));
+image=strcat(f,'.jpg');
+sand = imread(image); 
+sand=imresize(sand,[150,150],'bilinear');%强制转换图像大小
+sand=rgb2gray(sand);
+[x,y]=size(sand); 
+I3 = medfilt2(sand,[3 3]);      % 中滤滤波 
+I3 = imadjust(I3);  
+bw1 = im2bw(I3, 0.9);     % 将图像转化为二值图像。经试验，采用门限值为0.3附近时没有断开和粘连，便于后期统计。 
+bw = bwareaopen(bw1, 10);     %去除图像中面积过小的杂点。这些杂点一部分是滤噪没有滤去的，一部分是图像边缘亮度差异产生的。 
+bw0= 1 - bw; 
+I2 = bwfill(bw0,'holes');      % 填补图中空 
+se=strel('square',3);               % 定义腐蚀算法的结构 
+SI1=imerode(I2,se);                 % 腐蚀算法 
+se1=strel('square',10);               % 定义腐蚀算法的结构 
+I1=imdilate(SI1,se1);                 % 膨胀算法，使的轮廓清析 
+[labeled,numObjects] = bwlabel(I1,4);  % 标记连通的区域，以便统计数量与面积和特性。 
+% 完成图边分割和提取% 
+RGB_label=label2rgb(labeled,@spring,'c','shuffle');   % 用颜色标记每粒，以便直观显示。此时沙粒的断开与粘连问题已基本被解决。 
+chrdata = regionprops(labeled,'all')    %统计被标记的区域的面积分布，显示沙子总数。 
+allchrs = [chrdata.Area]; 
+num = size(allchrs); 
+% BW1=edge(labeled,'sobel', 0.11);  % 边缘提取 
+yuan = [chrdata.Eccentricity]; 
+[line,row]=size(yuan); 
+long = [chrdata.MajorAxisLength]; 
+width = [chrdata.MinorAxisLength]; 
+nbins = 20; 
+ 
+figure(1); 
+imshow(sand);title('Original')                         % 显示原始图象 
+figure(2); 
+imshow(I3);title('medfilt')                            % 显示滤后的图象 
+figure(3); 
+imshow(bw);title('0-1')                   % 显示二值化的图象 
+figure(4); 
+imshow(I2);title('bwfill')                         % 显示填补后的图象 
+figure(5); 
+imshow(I1);title('imdilate')                         % 显示阈值分割的图象 
+figure(6); 
+imshow(RGB_label);title('RGB')                         % 显示彩色标记的图象 
+figure(7),hist(allchrs,nbins);                    % 面积统计  
+title(num(2)) 
+figure(8),hist(yuan,nbins);                  %偏心率统计  
+title(num(2)) 
+ 
+for k = 1:row                         % 图像判别 
+I = (labeled == k); 
+BW = bwperim(I,8);              % 检测沙子的边缘跟踪，用于计算周长  
+ 
+%检测垂直方向连读的周长像素点% 
+P1=0; 
+P2=0; 
+Ny=0;                           % 记录垂直方向连续周长像素点的个数 
+for i=1:x 
+    for j=1:y 
+        if (BW(i,j)>0) 
+            P2=j; 
+            if ((P2-P1)==1)    % 判断是否为垂直方向连续的周长像素点 
+                Ny=Ny+1; 
+            end 
+            P1=P2; 
+        end 
+    end 
+end     
+ 
+%检测水平方向连读的周长像素点% 
+P1=0; 
+P2=0; 
+Nx=0;                           % 记录水平方向连续周长像素点的个数 
+for j=1:y 
+    for i=1:x 
+        if (BW(i,j)>0) 
+            P2=i; 
+            if ((P2-P1)==1)    % 判断是否为水平方向连续的周长像素点 
+                Nx=Nx+1; 
+            end 
+            P1=P2; 
+        end 
+    end 
+end  
+ 
+ 
+SN=sum(sum(BW));            % 计算周长像素点的总数 
+Nd=SN-Nx-Ny;                % 计算奇数码的链码数目 
+ 
+H=max(sum(I));              % 计算高度  
+W=max(sum(I'));             % 图象I经矩阵转置后，计算宽度 
+L=sqrt(2)*Nd+Nx+Ny;         % 计算周长 
+ 
+%====四个形态特征值计算===% 
+A(k)=bwarea(I);                % 计算面积 
+CC(k)=4*pi*A(k)/(L*L);             % 计算圆度 
+R(k)=A(k)/(H*W);                  % 计算矩形度 
+E(k)=min(H,W)/max(H,W);           % 计算伸长度 
+Data (q,1)=A(k);
+Data(q,2)=CC(k);
+Data(q,3)=R(k);
+Data(q,4)=E(k);
+Data(q,5)=H;
+Data(q,6)=W;
+Data(q,7)=L;
+
+
+
+end 
+end 
+ 
+ 
+ 
+
+ 

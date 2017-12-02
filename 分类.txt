@@ -1,0 +1,72 @@
+%归一化函数
+function data1= To1(data)
+%UNTITLED 此处显示有关此函数的摘要
+%   此处显示详细说明
+[m,n]=size(data);
+data1=zeros(m,n);
+for j=1:n
+    tempmax=max((data(:,j)));
+    tempmin=min((data(:,j)));
+    f=tempmax-tempmin;
+    for i=1:m
+        data1(i,j)=(data(i,j)-tempmin)/f;
+    end
+end
+end
+
+
+%分类
+function [allrate]= getrate(testdata,k,times)%3个参数 数据 k均值的k值 times循环次数  应该有100行数据前50一类后50一类
+    rates=zeros(1,times)        %保存每次循环正确率的rates数组
+    [m,n]=size(testdata);        %获取数据的行数列数 
+    for timei=1:times   
+         Learn=testdata;        
+         Learn(1:40,n+1)=1;     %n+1行记录数据列别
+         Learn(41:90,n+1)=2;
+         
+        Test= zeros(45,n+1);    %将数据随机分为两组 一半learn学习数据集 一半Test测试正确率用 
+        for ri=1:50
+             index=unidrnd(size(Learn,1));
+             lin=Learn(index,1:n+1);
+             Test(ri,:)=lin;
+             Learn(index,:)=[];
+         
+            classLabel(ri)=Test(ri,n+1);   %一维数组记录数据的正确类别  
+        end      
+
+        class = zeros(1, 45);   %一维数组记录分类的分类结果  
+   
+        tempclass=zeros(size(Test, 1),k);
+
+            for ii = 1:size(Test, 1)
+               for jj=1:size(Learn,1)
+                   d(jj)=norm(Test(ii, 1:n) - Learn(jj,1:n));%计算距离
+               end
+    
+                [minval sd]=sort(d);            %对距离进行升序排列
+              
+               
+                 [ tempclass(ii,1:k)]=sd(1:k);%记录前k个距离近的数据的索引
+                 fsum=0;
+                for tk=1:k
+                   
+                    if(Learn(tempclass(ii,tk),n+1)==1)
+                        fsum=fsum+1;
+                    end
+                end
+                if(fsum>(k/2))                  %判断前k个1类的多还是2类得多
+                    [ class(ii)] = 1;
+                else
+                    [ class(ii)] = 2;
+                end
+            end
+        nErr = sum(class ~= classLabel);       
+        rate = 1 - nErr / length(class);
+        rates(timei)=rate;                      %计算正确率
+        
+    end
+    allrate=mean(rates);                         %计算总正确率
+    strOut = ['平均识别率为', num2str(allrate*100), '%']
+end
+
+
